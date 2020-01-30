@@ -24,8 +24,10 @@
 #include "libc/stdio.h"
 #include "libc/nostd.h"
 #include "libc/regutils.h"
-#include "usb.h"
+#include "libusbotghs.h"
+#include "libusbctrl.h"
 #include "usb_bbb.h"
+#include "usb_control_mass_storage.h"
 
 
 #define BBB_DEBUG 0
@@ -76,7 +78,8 @@ void read_next_cmd(void)
     printf("[USB BBB] %s: Reading a command\n", __func__);
 #endif
     bbb_state = READY;
-    usb_driver_setup_read(&cbw, sizeof(cbw), 1);
+    usbotghs_set_recv_fifo((uint8_t*)&cbw, sizeof(cbw), 1);
+    usbotghs_activate_endpoint(1, USBOTG_HS_EP_DIR_OUT);
 }
 
 extern volatile bool reset_requested;
@@ -140,7 +143,7 @@ static void usb_bbb_data_received(uint32_t size)
     }
 }
 
-static void usb_bbb_data_sent(void)
+static void usb_bbb_data_sent(uint32_t size __attribute__((unused)))
 {
     if(reset_requested == true){
         while(reset_requested == true){
@@ -188,13 +191,40 @@ void usb_bbb_early_init(void (*cmd_received)(uint8_t cdb[], uint8_t cdb_len),
     callback_data_received = data_received;
     callback_data_sent = data_sent;
 
-    usb_driver_early_init(usb_bbb_data_received, usb_bbb_data_sent);
+    // XXX: usb_driver_early_init(usb_bbb_data_received, usb_bbb_data_sent);
 
 }
 
-void usb_bbb_init(void)
+void usb_bbb_init(usbctrl_context_t *ctx)
 {
-    usb_driver_init();
+    usbctrl_interface_t iface = { 0 };
+    iface.usb_class = USB_CLASS_MSC_UMS;
+    iface.usb_subclass = 0x6; /* SCSI transparent cmd set (i.e. use INQUIRY) */
+    iface.usb_protocol = 0x50; /* Protocol BBB (Bulk only) */
+    iface.dedicated = false;
+    iface.rqst_handler = mass_storage_class_rqst_handler;
+    iface.func_desc = 0;
+    iface.func_desc_len = 0;
+    iface.usb_ep_number = 2;
+    iface.eps[0].type = USB_EP_TYPE_BULK;
+    iface.eps[0].mode = USB_EP_MODE_READ;
+    iface.eps[0].attr = USB_EP_ATTR_NO_SYNC;
+    iface.eps[0].usage = USB_EP_USAGE_DATA;
+    iface.eps[0].pkt_maxsize = 512; /* mpsize on EP1 */
+    iface.eps[0].ep_num = 1; /* this may be updated by libctrl */
+    iface.eps[0].handler = usb_bbb_data_received;
+    iface.eps[1].type = USB_EP_TYPE_BULK;
+    iface.eps[1].mode = USB_EP_MODE_WRITE;
+    iface.eps[1].attr = USB_EP_ATTR_NO_SYNC;
+    iface.eps[1].usage = USB_EP_USAGE_DATA;
+    iface.eps[1].pkt_maxsize = 512; /* mpsize on EP1 */
+    iface.eps[1].ep_num = 2; /* this may be updated by libctrl */
+    iface.eps[1].handler = usb_bbb_data_sent;
+
+
+    usbctrl_initialize(ctx);
+    usbctrl_declare_interface(ctx, &iface);
+    usbctrl_start_device(ctx);
 
     bbb_state = READY;
     /* Read first command */
@@ -230,7 +260,7 @@ void usb_bbb_send_csw(enum csw_status status, uint32_t data_residue)
     aprintf("[USB BBB] %s: Sending CSW (%x, %x, %x, %x)\n", __func__, csw.sig,
             csw.tag, csw.data_residue, csw.status);
 #endif
-    usb_driver_setup_send((uint8_t *) & csw, sizeof(csw), 2);
+    usbotghs_send_data((uint8_t *) & csw, sizeof(csw), 2);
 }
 
 void usb_bbb_send(const uint8_t * src, uint32_t size, uint8_t ep)
@@ -239,7 +269,7 @@ void usb_bbb_send(const uint8_t * src, uint32_t size, uint8_t ep)
     aprintf("[USB BBB] %s\n", __func__);
 #endif
     bbb_state = DATA;
-    usb_driver_setup_send(src, size, ep);
+    usbotghs_send_data((uint8_t *)src, size, ep);
 }
 
 void usb_bbb_read(void *dst, uint32_t size, uint8_t ep)
@@ -248,5 +278,6 @@ void usb_bbb_read(void *dst, uint32_t size, uint8_t ep)
     aprintf("[USB BBB] %s\n", __func__);
 #endif
     bbb_state = DATA;
-    usb_driver_setup_read(dst, size, ep);
+    usbotghs_set_recv_fifo(dst, size, ep);
+    usbotghs_activate_endpoint(ep, USBOTG_HS_EP_DIR_OUT);
 }
