@@ -42,7 +42,14 @@
 #include "scsi_log.h"
 #include "scsi_automaton.h"
 
-#define SCSI_DEBUG CONFIG_USR_LIB_MASSSTORAGE_DEBUG
+#define SCSI_DEBUG CONFIG_USR_LIB_MASSSTORAGE_SCSI_DEBUG
+#if SCSI_DEBUG
+# define log_printf(...) printf(__VA_ARGS__)
+#else
+# define log_printf(...)
+#endif
+
+
 
 /*
  * The SCSI stack context. This is a global variable, which means
@@ -100,10 +107,8 @@ static volatile cdb_t queued_cdb = { 0 };
 
 static void scsi_error(scsi_sense_key_t sensekey, uint8_t asc, uint8_t ascq)
 {
-#if SCSI_DEBUG
-    aprintf("%s: %s: status=%d\n", __func__, __func__, sensekey);
-    aprintf("%s: state -> Error\n", __func__);
-#endif
+    log_printf("%s: %s: status=%d\n", __func__, __func__, sensekey);
+    log_printf("%s: state -> Error\n", __func__);
     scsi_ctx.error = (sensekey << 16 | asc << 8 | ascq);
     /* returning status */
     usb_bbb_send_csw(CSW_STATUS_FAILED, 0);
@@ -281,7 +286,7 @@ void scsi_get_data(void *buffer, uint32_t size)
     scsi_ctx.line_state = SCSI_TRANSMIT_LINE_BUSY;
     scsi_ctx.addr = 0;
 
-    usb_bbb_read(buffer, size, 1);
+    usb_bbb_recv(buffer, size);
 }
 
 /*
@@ -299,7 +304,7 @@ void scsi_send_data(void *data, uint32_t size)
     scsi_ctx.line_state = SCSI_TRANSMIT_LINE_BUSY;
     scsi_ctx.addr = 0;
 
-    usb_bbb_send(data, size, 2);        /* FIXME HARCODED ENDPOINT */
+    usb_bbb_send(data, size);        /* FIXME HARCODED ENDPOINT */
 }
 
 /*
@@ -441,10 +446,6 @@ static void scsi_parse_cdb(uint8_t cdb[], uint8_t cdb_len)
      * See cdb_t definition in scsi_cmd.h */
     memcpy((void *) &queued_cdb, (void *) cdb, cdb_len);
     scsi_ctx.queue_empty = false;
-    // XXX: IN EP is deactivated until:
-    // 1. next cmd to read or data to read in main thread
-    //usbotghs_deactivate_endpoint(1, USBOTG_HS_EP_DIR_OUT);
-    //usbotghs_endpoint_set_nak(1, USBOTG_HS_EP_DIR_OUT);
     return;
 }
 
@@ -463,9 +464,7 @@ static void scsi_cmd_inquiry(scsi_state_t  current_state, cdb_t * cdb)
     cdb6_inquiry_t *inq;
     uint8_t next_state;
 
-#if SCSI_DEBUG
-    printf("%s:\n", __func__);
-#endif
+    log_printf("%s:\n", __func__);
     /* Sanity check */
     if (cdb == NULL) {
         goto invalid_transition;
@@ -525,9 +524,7 @@ static void scsi_cmd_inquiry(scsi_state_t  current_state, cdb_t * cdb)
     memcpy(response.product_revision, CONFIG_USB_DEV_REVISION,
            strlen(CONFIG_USB_DEV_REVISION));
 
-#if SCSI_DEBUG
-    printf("%s: %s\n", __func__, response.product_revision);
-#endif
+    log_printf("%s: %s\n", __func__, response.product_revision);
 
 
     if (inq->allocation_length > 0) {
@@ -535,7 +532,7 @@ static void scsi_cmd_inquiry(scsi_state_t  current_state, cdb_t * cdb)
                      (ntohs(inq->allocation_length) <
                       sizeof(response)) ? ntohs(inq->
                                                 allocation_length) :
-                     sizeof(response), 2);
+                     sizeof(response));
     } else {
         printf("allocation length is 0\n");
     }
@@ -560,9 +557,7 @@ static void scsi_cmd_prevent_allow_medium_removal(scsi_state_t current_state,
 {
     uint8_t next_state;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -599,9 +594,7 @@ static void scsi_cmd_read_format_capacities(scsi_state_t current_state,
 {
     uint8_t next_state;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -643,10 +636,10 @@ static void scsi_cmd_read_format_capacities(scsi_state_t current_state,
     if (ntohs(rfc->allocation_length_msb) > 0) {
         usb_bbb_send((uint8_t *) & response,
                      (ntohs(rfc->allocation_length_msb) <
-                      size) ? rfc->allocation_length_msb : size, 2);
+                      size) ? rfc->allocation_length_msb : size);
     } else {
         printf("allocation length is 0\n");
-        usb_bbb_send((uint8_t *) & response, size, 2);
+        usb_bbb_send((uint8_t *) & response, size);
     }
     return;
 
@@ -675,9 +668,7 @@ static void scsi_cmd_read_data6(scsi_state_t current_state, cdb_t * current_cdb)
     uint8_t next_state;
     mbed_error_t error;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -787,9 +778,7 @@ static void scsi_cmd_read_data10(scsi_state_t current_state,
 
     mbed_error_t error;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -867,8 +856,6 @@ static void scsi_cmd_read_data10(scsi_state_t current_state,
             goto end;
         }
         scsi_send_data(scsi_ctx.global_buf, scsi_ctx.size_to_process);
-#if SCSI_DEBUG
-#endif
         /* active wait for data to be sent */
         while (!scsi_is_ready_for_data_send()) {
             continue;
@@ -893,9 +880,7 @@ static void scsi_cmd_read_capacity10(scsi_state_t current_state,
     read_capacity10_parameter_data_t response;
     uint8_t ret;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -931,7 +916,7 @@ static void scsi_cmd_read_capacity10(scsi_state_t current_state,
     response.ret_block_length = htonl(scsi_ctx.block_size);
 
     usb_bbb_send((uint8_t *) & response,
-                 sizeof(read_capacity10_parameter_data_t), 2);
+                 sizeof(read_capacity10_parameter_data_t));
     return;
 
 
@@ -951,9 +936,7 @@ static void scsi_cmd_read_capacity16(scsi_state_t current_state,
     cdb16_read_capacity_16_t *rc16;
     uint8_t ret;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -1009,7 +992,7 @@ static void scsi_cmd_read_capacity16(scsi_state_t current_state,
     if (rc16->allocation_length > 0) {
         usb_bbb_send((uint8_t *) & response,
                      (rc16->allocation_length < sizeof(response)) ?
-		         rc16->allocation_length : sizeof(response), 2);
+		         rc16->allocation_length : sizeof(response));
     }
     return;
 
@@ -1030,9 +1013,7 @@ static void scsi_cmd_report_luns(scsi_state_t current_state,
     cdb12_report_luns_t *rl;
     bool    check_condition = false;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -1072,7 +1053,7 @@ static void scsi_cmd_report_luns(scsi_state_t current_state,
                  (ntohs(rl->allocation_length) <
                   sizeof(response)) ? ntohs(rl->
                                             allocation_length) :
-                 sizeof(response), 2);
+                 sizeof(response));
 
     /* if the host didn't reserve enough space to respond, inform it that
      * some informations are missing */
@@ -1111,9 +1092,7 @@ static void scsi_cmd_request_sense(scsi_state_t current_state,
     uint8_t next_state;
     request_sense_parameter_data_t data;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -1147,7 +1126,7 @@ static void scsi_cmd_request_sense(scsi_state_t current_state,
     /* now that data has been sent successfully, scsi error is cleared */
     scsi_ctx.error = 0;
 
-    usb_bbb_send((uint8_t *) & data, sizeof(data), 2);
+    usb_bbb_send((uint8_t *) & data, sizeof(data));
     return;
 
 
@@ -1166,9 +1145,7 @@ static void scsi_cmd_mode_sense10(scsi_state_t current_state,
 {
     uint8_t next_state;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -1196,7 +1173,7 @@ static void scsi_cmd_mode_sense10(scsi_state_t current_state,
     /* Sending Mode Sense 10 answer */
 
     /*usb_bbb_send_csw(CSW_STATUS_SUCCESS, sizeof(mode_parameter_header_t)); */
-    usb_bbb_send((uint8_t *) & response, sizeof(mode_parameter10_data_t), 2);
+    usb_bbb_send((uint8_t *) & response, sizeof(mode_parameter10_data_t));
 
     return;
 
@@ -1214,9 +1191,7 @@ static void scsi_cmd_mode_sense6(scsi_state_t current_state,
 {
     uint8_t next_state;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -1243,7 +1218,7 @@ static void scsi_cmd_mode_sense6(scsi_state_t current_state,
     /* Sending Mode Sense 10 answer */
 
     /*usb_bbb_send_csw(CSW_STATUS_SUCCESS, sizeof(mode_parameter_header_t)); */
-    usb_bbb_send((uint8_t *) & response, sizeof(mode_parameter6_data_t), 2);
+    usb_bbb_send((uint8_t *) & response, sizeof(mode_parameter6_data_t));
     return;
 
  invalid_transition:
@@ -1259,9 +1234,7 @@ static void scsi_cmd_mode_select6(scsi_state_t current_state,
 {
     uint8_t next_state;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -1293,9 +1266,7 @@ static void scsi_cmd_mode_select10(scsi_state_t current_state,
 {
     uint8_t next_state;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -1329,9 +1300,7 @@ static void scsi_cmd_test_unit_ready(scsi_state_t current_state,
 {
     uint8_t next_state;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* Sanity check */
     if (current_cdb == NULL) {
@@ -1374,9 +1343,7 @@ static void scsi_write_data6(scsi_state_t current_state, cdb_t * current_cdb)
     mbed_error_t error;
     uint8_t next_state;
 
-#if SCSI_DEBUG
-    printf("%s:\n", __func__);
-#endif
+    log_printf("%s:\n", __func__);
 
     if (current_cdb == NULL) {
         return;
@@ -1491,9 +1458,7 @@ static void scsi_write_data10(scsi_state_t current_state, cdb_t * current_cdb)
     mbed_error_t error;
     uint8_t next_state;
 
-#if SCSI_DEBUG
-    printf("%s:\n", __func__);
-#endif
+    log_printf("%s:\n", __func__);
 
     if (current_cdb == NULL) {
         return;
@@ -1700,15 +1665,12 @@ void scsi_exec_automaton(void)
             break;
 
         default:
-#if SCSI_DEBUG
-            printf("%s: Unsupported command: %x  \n", __func__,
+            log_printf("%s: Unsupported command: %x  \n", __func__,
                    local_cdb.operation);
-#endif
             scsi_error(SCSI_SENSE_ILLEGAL_REQUEST, ASC_NO_ADDITIONAL_SENSE,
                        ASCQ_NO_ADDITIONAL_SENSE);
             break;
     };
-
     return;
 
  nothing_to_do:
@@ -1742,9 +1704,7 @@ static void scsi_reset_context(void)
 mbed_error_t scsi_early_init(uint8_t * buf, uint16_t len, usbctrl_context_t *ctx)
 {
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     if (!buf) {
         goto init_error;
@@ -1754,17 +1714,15 @@ mbed_error_t scsi_early_init(uint8_t * buf, uint16_t len, usbctrl_context_t *ctx
     scsi_ctx.global_buf_len = len;
 
     usbctrl_declare(ctx);
-    usb_bbb_early_init(scsi_parse_cdb, scsi_data_available, scsi_data_sent);
+    usb_bbb_declare(scsi_parse_cdb, scsi_data_available, scsi_data_sent);
 
     /* TODO: push down to usb_bbb lower layer ? */
 
     return MBED_ERROR_NONE;
 
  init_error:
-#if SCSI_DEBUG
-    printf("%s: ERROR: Unable to initialize scsi stack : %x  \n", __func__,
+    log_printf("%s: ERROR: Unable to initialize scsi stack : %x  \n", __func__,
            MBED_ERROR_INVPARAM);
-#endif
     return MBED_ERROR_INVPARAM;
 }
 
@@ -1782,9 +1740,7 @@ mbed_error_t scsi_init(usbctrl_context_t *ctx)
 {
     uint32_t i;
 
-#if SCSI_DEBUG
-    printf("%s\n", __func__);
-#endif
+    log_printf("%s\n", __func__);
 
     /* in USB High speed mode, the USB device is mapped (and enabled) just now */
     /* declare interface to libusbctrl  */
@@ -1806,7 +1762,7 @@ mbed_error_t scsi_init(usbctrl_context_t *ctx)
 
     /* Register our callbacks on the lower layer, declaring iface to
      * usbctrl */
-    usb_bbb_init(ctx);
+    usb_bbb_configure(ctx);
 
     scsi_set_state(SCSI_IDLE);
 
@@ -1817,7 +1773,8 @@ mbed_error_t scsi_init(usbctrl_context_t *ctx)
     return MBED_ERROR_NONE;
 }
 
-void scsi_reinit(void){
-    usb_bbb_reinit();
+void scsi_reinit(void)
+{
+    usb_bbb_reconfigure();
     scsi_reset_context();
 }
