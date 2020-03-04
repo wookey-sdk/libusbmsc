@@ -1701,7 +1701,7 @@ static void scsi_reset_context(void)
 /*
  * At earlu init time, no usbctrl interaction, only local SCSI & BBB configuration
  */
-mbed_error_t scsi_early_init(uint8_t * buf, uint16_t len, usbctrl_context_t *ctx)
+mbed_error_t scsi_early_init(uint8_t * buf, uint16_t len)
 {
 
     log_printf("%s\n", __func__);
@@ -1713,7 +1713,6 @@ mbed_error_t scsi_early_init(uint8_t * buf, uint16_t len, usbctrl_context_t *ctx
     scsi_ctx.global_buf = buf;
     scsi_ctx.global_buf_len = len;
 
-    usbctrl_declare(ctx);
     usb_bbb_declare(scsi_parse_cdb, scsi_data_available, scsi_data_sent);
 
     /* TODO: push down to usb_bbb lower layer ? */
@@ -1736,7 +1735,7 @@ mbed_error_t scsi_early_init(uint8_t * buf, uint16_t len, usbctrl_context_t *ctx
  * 1) configure the SCSI context and queue
  * 2)
  */
-mbed_error_t scsi_init(usbctrl_context_t *ctx)
+mbed_error_t scsi_init(uint32_t usbdci_handler)
 {
     uint32_t i;
 
@@ -1762,7 +1761,7 @@ mbed_error_t scsi_init(usbctrl_context_t *ctx)
 
     /* Register our callbacks on the lower layer, declaring iface to
      * usbctrl */
-    usb_bbb_configure(ctx);
+    usb_bbb_configure(usbdci_handler);
 
     scsi_set_state(SCSI_IDLE);
 
