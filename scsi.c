@@ -33,6 +33,7 @@
 #include "libc/arpa/inet.h"
 #include "wookey_ipc.h"
 #include "libusbctrl.h"
+#include "libautomaton.h"
 
 #include "usb_control_mass_storage.h"
 
@@ -1590,6 +1591,10 @@ void scsi_exec_automaton(void)
      */
 
     scsi_state_t current_state = scsi_get_state();
+    /* push current request */
+    if (automaton_push_transition_request(ctxh, local_cdb.operation) != MBED_ERROR_NONE) {
+        log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+    }
 
     switch (local_cdb.operation) {
         case SCSI_CMD_INQUIRY:
@@ -1668,6 +1673,9 @@ void scsi_exec_automaton(void)
                        ASCQ_NO_ADDITIONAL_SENSE);
             break;
     };
+    if (automaton_postcheck_transition_request(ctxh) != MBED_ERROR_NONE) {
+        log_printf("[scsi] unable to postcheck transition request %x\n", local_cdb.operation);
+    }
     return;
 
  nothing_to_do:
@@ -1750,11 +1758,16 @@ mbed_error_t scsi_init(uint32_t usbdci_handler)
         scsi_ctx.global_buf[i] = '\0';
     }
 
+    if (automaton_initialize() != MBED_ERROR_NONE) {
+        log_printf("[scsi] uneble to init automaton!\n");
+        /* TODO: for test only, to be executed at app level */
+    }
+    scsi_set_state(SCSI_IDLE);
+    scsi_set_state(SCSI_IDLE);
     /* Register our callbacks on the lower layer, declaring iface to
      * usbctrl */
     usb_bbb_configure(usbdci_handler);
 
-    scsi_set_state(SCSI_IDLE);
 
     /* initialize control plane, adding the reset event trigger for SCSI level */
 // XXX: no more needed    mass_storage_init(scsi_reset_context, scsi_reset_device);
