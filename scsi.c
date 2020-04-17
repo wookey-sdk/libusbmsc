@@ -40,7 +40,6 @@
 #include "scsi_cmd.h"
 #include "scsi_resp.h"
 #include "scsi_log.h"
-#include "scsi_automaton.h"
 
 #define SCSI_DEBUG CONFIG_USR_LIB_MASSSTORAGE_SCSI_DEBUG
 #if SCSI_DEBUG
@@ -48,6 +47,138 @@
 #else
 # define log_printf(...)
 #endif
+
+/**************************************************
+ * About automaton. These infos are transmitted to the libautomaton, which
+ * handle the overall states transitions and checks for us
+ */
+typedef enum scsi_state {
+    SCSI_IDLE = 0x00,
+    SCSI_READ,
+    SCSI_WRITE,
+    SCSI_ERROR,
+} scsi_state_t;
+
+
+/*
+ * transition id is the table cell identifier. SCSI command is the cell content.
+ * read and write command have been placed at the begining of the table for optimization
+ * reasons.
+ */
+#define SUPPORTED_SCSI_CMD 20
+
+typedef enum {
+    TRANS_SCSI_CMD_READ_6 = 0,
+    TRANS_SCSI_CMD_READ_10,
+    TRANS_SCSI_CMD_WRITE_6,
+    TRANS_SCSI_CMD_WRITE_10,
+    TRANS_SCSI_CMD_FORMAT_UNIT,
+    TRANS_SCSI_CMD_INQUIRY,
+    TRANS_SCSI_CMD_MODE_SELECT_6,
+    TRANS_SCSI_CMD_MODE_SELECT_10,
+    TRANS_SCSI_CMD_READ_CAPACITY_10,
+    TRANS_SCSI_CMD_READ_FORMAT_CAPACITIES,
+    TRANS_SCSI_CMD_REPORT_LUNS,
+    TRANS_SCSI_CMD_START_STOP_UNIT,
+    TRANS_SCSI_CMD_TEST_UNIT_READY,
+    TRANS_SCSI_CMD_VERIFY_10,
+    TRANS_SCSI_CMD_READ_CAPACITY_16,
+    TRANS_SCSI_CMD_MODE_SENSE_10,
+    TRANS_SCSI_CMD_MODE_SENSE_6,
+    TRANS_SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL,
+    TRANS_SCSI_CMD_REQUEST_SENSE,
+    TRANS_SCSI_CMD_SEND_DIAGNOSTIC,
+} scsi_transition_id_t;
+
+#define TRANS_FROM_CMD(a) TRANS_##a
+
+
+const automaton_transition_t scsi_automaton[] = {
+        { .state = SCSI_IDLE,
+          .transition = {
+            { .transition_id = TRANS_SCSI_CMD_INQUIRY, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_MODE_SELECT_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_MODE_SELECT_6, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_6, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_READ_6, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_READ_10, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_READ_CAPACITY_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_READ_CAPACITY_16, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_READ_FORMAT_CAPACITIES, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_REPORT_LUNS, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_REQUEST_SENSE, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_SEND_DIAGNOSTIC, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_TEST_UNIT_READY, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_WRITE_6, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_WRITE_10, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true }
+          }
+        },
+        { .state = SCSI_READ,
+          .transition = {
+            { .transition_id = TRANS_SCSI_CMD_READ_10, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_READ_6, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false }
+          }
+        },
+        { .state = SCSI_WRITE,
+          .transition = {
+            { .transition_id = TRANS_SCSI_CMD_WRITE_10, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_WRITE_6, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false }
+          }
+        },
+        { .state = SCSI_ERROR,
+          .transition = {
+            { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_6, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = TRANS_SCSI_CMD_REQUEST_SENSE, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
+            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false }
+          }
+        }
+};
 
 
 
@@ -83,6 +214,7 @@ typedef struct {
     uint16_t global_buf_len;
     uint32_t block_size;
     uint32_t storage_size;
+    automaton_ctx_handler_t aut_handler;
 } scsi_context_t;
 
 
@@ -99,8 +231,6 @@ scsi_context_t scsi_ctx = {
     .storage_size = 0,
 };
 
-
-
 static volatile cdb_t queued_cdb = { 0 };
 
 static void scsi_error(scsi_sense_key_t sensekey, uint8_t asc, uint8_t ascq)
@@ -110,7 +240,7 @@ static void scsi_error(scsi_sense_key_t sensekey, uint8_t asc, uint8_t ascq)
     scsi_ctx.error = (sensekey << 16 | asc << 8 | ascq);
     /* returning status */
     usb_bbb_send_csw(CSW_STATUS_FAILED, 0);
-    scsi_set_state(SCSI_IDLE);
+    automaton_set_state(scsi_ctx.aut_handler, SCSI_IDLE);
 }
 
 /*********************************************************************
@@ -326,7 +456,7 @@ static void scsi_data_available(uint32_t size)
     if (scsi_ctx.size_to_process == 0) {
         usb_bbb_send_csw(CSW_STATUS_SUCCESS, 0);
         scsi_ctx.direction = SCSI_DIRECTION_IDLE;
-        scsi_set_state(SCSI_IDLE);
+        automaton_set_state(scsi_ctx.aut_handler, SCSI_IDLE);
     }
 }
 
@@ -352,7 +482,7 @@ static void scsi_data_sent(void)
     if (scsi_ctx.size_to_process == 0) {
         usb_bbb_send_csw(CSW_STATUS_SUCCESS, 0);
         scsi_ctx.direction = SCSI_DIRECTION_IDLE;
-        scsi_set_state(SCSI_IDLE);
+        automaton_set_state(scsi_ctx.aut_handler, SCSI_IDLE);
     }
 }
 
@@ -456,11 +586,10 @@ static void scsi_parse_cdb(uint8_t cdb[], uint8_t cdb_len)
  */
 
 /* SCSI_CMD_INQUIRY */
-static void scsi_cmd_inquiry(scsi_state_t  current_state, cdb_t * cdb)
+static void scsi_cmd_inquiry(cdb_t * cdb)
 {
     inquiry_data_t response;
     cdb6_inquiry_t *inq;
-    uint8_t next_state;
 
     log_printf("%s:\n", __func__);
     /* Sanity check */
@@ -469,14 +598,9 @@ static void scsi_cmd_inquiry(scsi_state_t  current_state, cdb_t * cdb)
     }
 
     /* Sanity check and next state detection */
-
-    if (!scsi_is_valid_transition(current_state, cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-
-    next_state = scsi_next_state(current_state, cdb->operation);
-    scsi_set_state(next_state);
-
     /* effective transition execution (if needed) */
     inq = &(cdb->payload.cdb6_inquiry);
 
@@ -550,11 +674,8 @@ static void scsi_cmd_inquiry(scsi_state_t  current_state, cdb_t * cdb)
 }
 
 
-static void scsi_cmd_prevent_allow_medium_removal(scsi_state_t current_state,
-                                                  cdb_t * current_cdb)
+static void scsi_cmd_prevent_allow_medium_removal(cdb_t * current_cdb)
 {
-    uint8_t next_state;
-
     log_printf("%s\n", __func__);
 
     /* Sanity check */
@@ -563,12 +684,9 @@ static void scsi_cmd_prevent_allow_medium_removal(scsi_state_t current_state,
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-    scsi_set_state(next_state);
 #if SCSI_DEBUG > 1
     printf("%s: Prevent allow medium removal: %x\n", __func__,
            current_cdb->payload.cdb10_prevent_allow_removal.prevent);
@@ -587,11 +705,8 @@ static void scsi_cmd_prevent_allow_medium_removal(scsi_state_t current_state,
 }
 
 
-static void scsi_cmd_read_format_capacities(scsi_state_t current_state,
-                                            cdb_t * current_cdb)
+static void scsi_cmd_read_format_capacities(cdb_t * current_cdb)
 {
-    uint8_t next_state;
-
     log_printf("%s\n", __func__);
 
     /* Sanity check */
@@ -600,11 +715,9 @@ static void scsi_cmd_read_format_capacities(scsi_state_t current_state,
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-    scsi_set_state(next_state);
 
     cdb12_read_format_capacities_t *rfc =
         &(current_cdb->payload.cdb12_read_format_capacities);
@@ -655,7 +768,7 @@ static void scsi_cmd_read_format_capacities(scsi_state_t current_state,
  * INFO: this command is deprecated but is implemented for retrocompatibility
  * with older Operating Systems
  */
-static void scsi_cmd_read_data6(scsi_state_t current_state, cdb_t * current_cdb)
+static void scsi_cmd_read_data6(cdb_t * current_cdb)
 {
     uint32_t num_sectors;
     uint32_t total_num_sectors;
@@ -663,7 +776,6 @@ static void scsi_cmd_read_data6(scsi_state_t current_state, cdb_t * current_cdb)
     uint32_t rw_lba;
     uint16_t rw_size;
     uint64_t rw_addr;
-    uint8_t next_state;
     mbed_error_t error;
 
     log_printf("%s\n", __func__);
@@ -674,13 +786,9 @@ static void scsi_cmd_read_data6(scsi_state_t current_state, cdb_t * current_cdb)
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-
-    /* entering READ state... */
-    scsi_set_state(next_state);
 
     /* SCSI standard says that the host should not request READ10 cmd
      * before requesting GET_CAPACITY cmd. In this very case, we have to
@@ -763,8 +871,7 @@ static void scsi_cmd_read_data6(scsi_state_t current_state, cdb_t * current_cdb)
 
 
 /* SCSI_CMD_READ_10 */
-static void scsi_cmd_read_data10(scsi_state_t current_state,
-                                 cdb_t * current_cdb)
+static void scsi_cmd_read_data10(cdb_t * current_cdb)
 {
     uint32_t num_sectors;
     uint32_t total_num_sectors;
@@ -772,7 +879,6 @@ static void scsi_cmd_read_data10(scsi_state_t current_state,
     uint32_t rw_lba;
     uint16_t rw_size;
     uint64_t rw_addr;
-    uint8_t next_state;
 
     mbed_error_t error;
 
@@ -785,11 +891,9 @@ static void scsi_cmd_read_data10(scsi_state_t current_state,
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
-        printf("not valid transition from state %d\n", current_state);
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-    next_state = scsi_next_state(current_state, current_cdb->operation);
 
     /* SCSI standard says that the host should not request READ10 cmd
      * before requesting GET_CAPACITY cmd. In this very case, we have to
@@ -800,9 +904,6 @@ static void scsi_cmd_read_data10(scsi_state_t current_state,
                    ASCQ_NO_ADDITIONAL_SENSE);
         return;
     }
-
-    /* entering READ state... */
-    scsi_set_state(next_state);
 
     rw_lba = ntohl(current_cdb->payload.cdb10.logical_block);
     rw_size = ntohs(current_cdb->payload.cdb10.transfer_blocks);
@@ -871,10 +972,8 @@ static void scsi_cmd_read_data10(scsi_state_t current_state,
 
 
 /* SCSI_CMD_READ_CAPACITY_10 */
-static void scsi_cmd_read_capacity10(scsi_state_t current_state,
-                                     cdb_t * current_cdb)
+static void scsi_cmd_read_capacity10(cdb_t * current_cdb)
 {
-    uint8_t next_state;
     read_capacity10_parameter_data_t response;
     uint8_t ret;
 
@@ -886,15 +985,9 @@ static void scsi_cmd_read_capacity10(scsi_state_t current_state,
     }
 
     /* Sanity check and next state detection */
-
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-
-
-    /* entering target state */
-    scsi_set_state(next_state);
 
     /* let's get capacity from upper layer */
     ret =
@@ -926,10 +1019,8 @@ static void scsi_cmd_read_capacity10(scsi_state_t current_state,
 }
 
 /* SCSI_CMD_READ_CAPACITY_16 */
-static void scsi_cmd_read_capacity16(scsi_state_t current_state,
-                                     cdb_t * current_cdb)
+static void scsi_cmd_read_capacity16(cdb_t * current_cdb)
 {
-    uint8_t next_state;
     read_capacity16_parameter_data_t response;
     cdb16_read_capacity_16_t *rc16;
     uint8_t ret;
@@ -942,14 +1033,9 @@ static void scsi_cmd_read_capacity16(scsi_state_t current_state,
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-
-    /* entering target state */
-    scsi_set_state(next_state);
-
 
     /* let's get capacity from upper layer */
     ret =
@@ -1004,10 +1090,8 @@ static void scsi_cmd_read_capacity16(scsi_state_t current_state,
 
 
 /* SCSI_CMD_REPORT_LUNS */
-static void scsi_cmd_report_luns(scsi_state_t current_state,
-                                 cdb_t * current_cdb)
+static void scsi_cmd_report_luns(cdb_t * current_cdb)
 {
-    uint8_t next_state;
     cdb12_report_luns_t *rl;
     bool    check_condition = false;
 
@@ -1019,13 +1103,9 @@ static void scsi_cmd_report_luns(scsi_state_t current_state,
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-
-    scsi_set_state(next_state);
 
     rl = &(current_cdb->payload.cdb12_report_luns);
 
@@ -1084,10 +1164,8 @@ static void scsi_cmd_report_luns(scsi_state_t current_state,
 }
 
 /* SCSI_CMD_REQUEST_SENSE */
-static void scsi_cmd_request_sense(scsi_state_t current_state,
-                                   cdb_t * current_cdb)
+static void scsi_cmd_request_sense(cdb_t * current_cdb)
 {
-    uint8_t next_state;
     request_sense_parameter_data_t data;
 
     log_printf("%s\n", __func__);
@@ -1098,12 +1176,9 @@ static void scsi_cmd_request_sense(scsi_state_t current_state,
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-
-    scsi_set_state(next_state);
 
 #if SCSI_DEBUG > 1
     printf("%s: desc: %x, allocation_length: %x\n",
@@ -1138,11 +1213,8 @@ static void scsi_cmd_request_sense(scsi_state_t current_state,
 
 
 /* SCSI_CMD_MODE_SENSE(10) */
-static void scsi_cmd_mode_sense10(scsi_state_t current_state,
-                                  cdb_t * current_cdb)
+static void scsi_cmd_mode_sense10(cdb_t * current_cdb)
 {
-    uint8_t next_state;
-
     log_printf("%s\n", __func__);
 
     /* Sanity check */
@@ -1152,12 +1224,9 @@ static void scsi_cmd_mode_sense10(scsi_state_t current_state,
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-    scsi_set_state(next_state);
 
 #if SCSI_DEBUG > 1
     scsi_debug_dump_cmd(current_cdb, SCSI_CMD_MODE_SENSE_10);
@@ -1184,11 +1253,8 @@ static void scsi_cmd_mode_sense10(scsi_state_t current_state,
 
 
 /* SCSI_CMD_MODE_SENSE(6) */
-static void scsi_cmd_mode_sense6(scsi_state_t current_state,
-                                 cdb_t * current_cdb)
+static void scsi_cmd_mode_sense6(cdb_t * current_cdb)
 {
-    uint8_t next_state;
-
     log_printf("%s\n", __func__);
 
     /* Sanity check */
@@ -1198,12 +1264,9 @@ static void scsi_cmd_mode_sense6(scsi_state_t current_state,
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-    scsi_set_state(next_state);
 
 #if SCSI_DEBUG > 1
     scsi_debug_dump_cmd(current_cdb, SCSI_CMD_MODE_SENSE_10);
@@ -1227,11 +1290,8 @@ static void scsi_cmd_mode_sense6(scsi_state_t current_state,
 }
 
 /* SCSI_CMD_MODE_SELECT(6) */
-static void scsi_cmd_mode_select6(scsi_state_t current_state,
-                                  cdb_t * current_cdb)
+static void scsi_cmd_mode_select6(cdb_t * current_cdb)
 {
-    uint8_t next_state;
-
     log_printf("%s\n", __func__);
 
     /* Sanity check */
@@ -1241,11 +1301,9 @@ static void scsi_cmd_mode_select6(scsi_state_t current_state,
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-    scsi_set_state(next_state);
 
     usb_bbb_send_csw(CSW_STATUS_SUCCESS, 0);
     return;
@@ -1259,11 +1317,8 @@ static void scsi_cmd_mode_select6(scsi_state_t current_state,
 
 
 /* SCSI_CMD_MODE_SELECT(10) */
-static void scsi_cmd_mode_select10(scsi_state_t current_state,
-                                   cdb_t * current_cdb)
+static void scsi_cmd_mode_select10(cdb_t * current_cdb)
 {
-    uint8_t next_state;
-
     log_printf("%s\n", __func__);
 
     /* Sanity check */
@@ -1273,12 +1328,9 @@ static void scsi_cmd_mode_select10(scsi_state_t current_state,
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-    scsi_set_state(next_state);
 
     /* effective transition execution (if needed) */
     usb_bbb_send_csw(CSW_STATUS_SUCCESS, 0);
@@ -1293,11 +1345,8 @@ static void scsi_cmd_mode_select10(scsi_state_t current_state,
 
 
 /* SCSI_CMD_TEST_UNIT_READY */
-static void scsi_cmd_test_unit_ready(scsi_state_t current_state,
-                                     cdb_t * current_cdb)
+static void scsi_cmd_test_unit_ready(cdb_t * current_cdb)
 {
-    uint8_t next_state;
-
     log_printf("%s\n", __func__);
 
     /* Sanity check */
@@ -1307,12 +1356,9 @@ static void scsi_cmd_test_unit_ready(scsi_state_t current_state,
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-
-    scsi_set_state(next_state);
 
     /* effective transition execution (if needed) */
     usb_bbb_send_csw(CSW_STATUS_SUCCESS, 0);
@@ -1330,7 +1376,7 @@ static void scsi_cmd_test_unit_ready(scsi_state_t current_state,
  * This command is declared as obsolete by the T10 consorsium.
  * It is implemented here for retrocompatibility with old Operating System
  */
-static void scsi_write_data6(scsi_state_t current_state, cdb_t * current_cdb)
+static void scsi_write_data6(cdb_t * current_cdb)
 {
     uint32_t num_sectors;
 
@@ -1339,7 +1385,6 @@ static void scsi_write_data6(scsi_state_t current_state, cdb_t * current_cdb)
     uint64_t rw_addr;
 
     mbed_error_t error;
-    uint8_t next_state;
 
     log_printf("%s:\n", __func__);
 
@@ -1353,13 +1398,9 @@ static void scsi_write_data6(scsi_state_t current_state, cdb_t * current_cdb)
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-
-    scsi_set_state(next_state);
 
     /* SCSI standard says that the host should not request WRITE10 cmd
      * before requesting GET_CAPACITY cmd. In this very case, we have to
@@ -1445,7 +1486,7 @@ static void scsi_write_data6(scsi_state_t current_state, cdb_t * current_cdb)
 
 
 /* SCSI_CMD_WRITE(10) */
-static void scsi_write_data10(scsi_state_t current_state, cdb_t * current_cdb)
+static void scsi_write_data10(cdb_t * current_cdb)
 {
     uint32_t num_sectors;
 
@@ -1454,7 +1495,6 @@ static void scsi_write_data10(scsi_state_t current_state, cdb_t * current_cdb)
     uint64_t rw_addr;
 
     mbed_error_t error;
-    uint8_t next_state;
 
     log_printf("%s:\n", __func__);
 
@@ -1468,12 +1508,9 @@ static void scsi_write_data10(scsi_state_t current_state, cdb_t * current_cdb)
     }
 
     /* Sanity check and next state detection */
-    if (!scsi_is_valid_transition(current_state, current_cdb->operation)) {
+    if (automaton_execute_transition_request(scsi_ctx.aut_handler)) {
         goto invalid_transition;
     }
-
-    next_state = scsi_next_state(current_state, current_cdb->operation);
-    scsi_set_state(next_state);
 
     /* SCSI standard says that the host should not request WRITE10 cmd
      * before requesting GET_CAPACITY cmd. In this very case, we have to
@@ -1590,80 +1627,124 @@ void scsi_exec_automaton(void)
      * be executed again
      */
 
-    scsi_state_t current_state = scsi_get_state();
     /* push current request */
-    if (automaton_push_transition_request(ctxh, local_cdb.operation) != MBED_ERROR_NONE) {
-        log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
-    }
 
     switch (local_cdb.operation) {
         case SCSI_CMD_INQUIRY:
-            scsi_cmd_inquiry(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_INQUIRY)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_inquiry(&local_cdb);
             break;
 
         case SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL:
-            scsi_cmd_prevent_allow_medium_removal(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_prevent_allow_medium_removal(&local_cdb);
             break;
 
         case SCSI_CMD_READ_6:
-            scsi_cmd_read_data6(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_READ_6)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_read_data6(&local_cdb);
             break;
 
         case SCSI_CMD_READ_10:
-            scsi_cmd_read_data10(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_READ_10)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_read_data10(&local_cdb);
             break;
 
         case SCSI_CMD_READ_CAPACITY_10:
-            scsi_cmd_read_capacity10(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_READ_CAPACITY_10)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_read_capacity10(&local_cdb);
             break;
 
         case SCSI_CMD_READ_CAPACITY_16:
-            scsi_cmd_read_capacity16(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_READ_CAPACITY_16)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_read_capacity16(&local_cdb);
             break;
 
         case SCSI_CMD_REPORT_LUNS:
-            scsi_cmd_report_luns(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_REPORT_LUNS)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_report_luns(&local_cdb);
             break;
 
         case SCSI_CMD_READ_FORMAT_CAPACITIES:
-            scsi_cmd_read_format_capacities(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_READ_FORMAT_CAPACITIES)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_read_format_capacities(&local_cdb);
             break;
 
         case SCSI_CMD_MODE_SELECT_10:
-            scsi_cmd_mode_select10(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_MODE_SELECT_10)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_mode_select10(&local_cdb);
             break;
 
         case SCSI_CMD_MODE_SELECT_6:
-            scsi_cmd_mode_select6(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_MODE_SELECT_6)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_mode_select6(&local_cdb);
             break;
 
         case SCSI_CMD_MODE_SENSE_10:
-            scsi_cmd_mode_sense10(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_MODE_SENSE_10)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_mode_sense10(&local_cdb);
             break;
 
         case SCSI_CMD_MODE_SENSE_6:
-            scsi_cmd_mode_sense6(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_MODE_SENSE_6)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_mode_sense6(&local_cdb);
             break;
 
 
         case SCSI_CMD_REQUEST_SENSE:
-            scsi_cmd_request_sense(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_REQUEST_SENSE)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_request_sense(&local_cdb);
             break;
 #if 0
         case SCSI_CMD_SEND_DIAGNOSTIC:
-            scsi_cmd_send_diagnostic(current_state, &local_cdb);
+            scsi_cmd_send_diagnostic(&local_cdb);
             break;
 #endif
         case SCSI_CMD_TEST_UNIT_READY:
-            scsi_cmd_test_unit_ready(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_TEST_UNIT_READY)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_cmd_test_unit_ready(&local_cdb);
             break;
 
         case SCSI_CMD_WRITE_6:
-            scsi_write_data6(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_WRITE_6)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_write_data6(&local_cdb);
             break;
 
         case SCSI_CMD_WRITE_10:
-            scsi_write_data10(current_state, &local_cdb);
+            if (automaton_push_transition_request(scsi_ctx.aut_handler, TRANS_FROM_CMD(SCSI_CMD_WRITE_10)) != MBED_ERROR_NONE) {
+                log_printf("[scsi] unable to push transition request %x\n", local_cdb.operation);
+            }
+            scsi_write_data10(&local_cdb);
             break;
 
         default:
@@ -1673,7 +1754,7 @@ void scsi_exec_automaton(void)
                        ASCQ_NO_ADDITIONAL_SENSE);
             break;
     };
-    if (automaton_postcheck_transition_request(ctxh) != MBED_ERROR_NONE) {
+    if (automaton_postcheck_transition_request(scsi_ctx.aut_handler) != MBED_ERROR_NONE) {
         log_printf("[scsi] unable to postcheck transition request %x\n", local_cdb.operation);
     }
     return;
@@ -1699,14 +1780,14 @@ static void scsi_reset_context(void)
     scsi_ctx.queue_empty = true;
     scsi_ctx.block_size = 0;
     scsi_ctx.storage_size = 0;
-    scsi_set_state(SCSI_IDLE);
+    automaton_set_state(scsi_ctx.aut_handler, SCSI_IDLE);
 }
 
 
 /*
  * At earlu init time, no usbctrl interaction, only local SCSI & BBB configuration
  */
-mbed_error_t scsi_early_init(uint8_t * buf, uint16_t len)
+mbed_error_t scsi_declare(uint8_t * buf, uint16_t len)
 {
 
     log_printf("%s\n", __func__);
@@ -1739,9 +1820,10 @@ mbed_error_t scsi_early_init(uint8_t * buf, uint16_t len)
  * 1) configure the SCSI context and queue
  * 2)
  */
-mbed_error_t scsi_init(uint32_t usbdci_handler)
+mbed_error_t scsi_configure(uint32_t usbdci_handler)
 {
     uint32_t i;
+    mbed_error_t errcode;
 
     log_printf("%s\n", __func__);
 
@@ -1749,31 +1831,33 @@ mbed_error_t scsi_init(uint32_t usbdci_handler)
     /* declare interface to libusbctrl  */
     //usb_driver_map();
 
+    /* the libautomaton **must** be initialized here */
+    errcode = automaton_declare_context(4,20,(automaton_transition_t const *const*)&scsi_automaton, &scsi_ctx.aut_handler);
+    if (errcode != MBED_ERROR_NONE) {
+        log_printf("unable to declare automaton context! err=%x\n", errcode);
+        goto err;
+    }
 
     scsi_ctx.storage_size = 0;
     scsi_ctx.block_size = 4096; /* default */
-    scsi_set_state(SCSI_IDLE);
+    automaton_set_state(scsi_ctx.aut_handler, SCSI_IDLE);
 
     for (i = 0; i < scsi_ctx.global_buf_len; i++) {
         scsi_ctx.global_buf[i] = '\0';
     }
 
-    if (automaton_initialize() != MBED_ERROR_NONE) {
-        log_printf("[scsi] uneble to init automaton!\n");
-        /* TODO: for test only, to be executed at app level */
+    /* set initial state */
+    errcode = automaton_set_state(scsi_ctx.aut_handler, SCSI_IDLE);
+    if (errcode != MBED_ERROR_NONE) {
+        log_printf("unable to set automaton initial state! err=%x\n", errcode);
+        goto err;
     }
-    scsi_set_state(SCSI_IDLE);
-    scsi_set_state(SCSI_IDLE);
     /* Register our callbacks on the lower layer, declaring iface to
      * usbctrl */
     usb_bbb_configure(usbdci_handler);
 
-
-    /* initialize control plane, adding the reset event trigger for SCSI level */
-// XXX: no more needed    mass_storage_init(scsi_reset_context, scsi_reset_device);
-
-
-    return MBED_ERROR_NONE;
+err:
+    return errcode;
 }
 
 void scsi_reinit(void)
