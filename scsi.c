@@ -27,13 +27,12 @@
 #include "libc/string.h"
 #include "api/scsi.h"
 #include "libc/string.h"
-#include "libc/queue.h"
-#include "libusbotghs.h"
 #include "usb_bbb.h"
 #include "autoconf.h"
 #include "libc/syscall.h"
 #include "libc/arpa/inet.h"
 #include "wookey_ipc.h"
+#include "libusbctrl.h"
 
 #include "usb_control_mass_storage.h"
 
@@ -78,7 +77,6 @@ typedef struct {
     volatile uint32_t size_to_process;
     uint32_t addr;
     uint32_t error;
-    queue_t *queue;             /* used to avoid lock loop */
     volatile bool queue_empty;
     uint8_t *global_buf;
     uint16_t global_buf_len;
@@ -93,7 +91,6 @@ scsi_context_t scsi_ctx = {
     .size_to_process = 0,
     .addr = 0,
     .error = 0,
-    .queue = NULL,
     .queue_empty = true,
     .global_buf = NULL,
     .global_buf_len = 0,
@@ -1728,7 +1725,6 @@ mbed_error_t scsi_early_init(uint8_t * buf, uint16_t len)
 /*
  * Init
  */
-#define MAX_SCSI_CMD_QUEUE_SIZE 10
 
 /*
  * Here, this is the effective initialization of the device, we:
@@ -1749,11 +1745,6 @@ mbed_error_t scsi_init(uint32_t usbdci_handler)
     scsi_ctx.storage_size = 0;
     scsi_ctx.block_size = 4096; /* default */
     scsi_set_state(SCSI_IDLE);
-
-    if (queue_create(MAX_SCSI_CMD_QUEUE_SIZE, &scsi_ctx.queue) !=
-        MBED_ERROR_NONE) {
-        return MBED_ERROR_NOMEM;
-    }
 
     for (i = 0; i < scsi_ctx.global_buf_len; i++) {
         scsi_ctx.global_buf[i] = '\0';
