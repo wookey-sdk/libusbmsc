@@ -3,6 +3,8 @@ config USR_LIB_MASSSTORAGE
   default y
   select USR_DRV_SDIO
   select USR_LIB_USBCTRL
+  select USR_LIB_AUTOMATON
+  select USR_LIB_AUTOMATON_CONTROL_FLOW_INTEGRITY
   ---help---
   Support for Mass-Storage class (USB_MSC) for USB stack.
 
