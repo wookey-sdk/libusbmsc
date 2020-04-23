@@ -93,40 +93,40 @@ typedef enum {
 #define TRANS_FROM_CMD(a) TRANS_##a
 
 static const transition_spec_t state_idle_trans_tab[] = {
-    { .transition_id = TRANS_SCSI_CMD_INQUIRY, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_MODE_SELECT_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_MODE_SELECT_6, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_6, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_READ_6, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_READ_10, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_READ_CAPACITY_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_READ_CAPACITY_16, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_READ_FORMAT_CAPACITIES, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_REPORT_LUNS, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_REQUEST_SENSE, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_SEND_DIAGNOSTIC, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_TEST_UNIT_READY, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_WRITE_6, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_WRITE_10, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true }
+    { .transition_id = TRANS_SCSI_CMD_INQUIRY, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_MODE_SELECT_10, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_MODE_SELECT_6, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_10, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_6, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_6, .target_state  = SCSI_READ, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_10, .target_state  = SCSI_READ, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_CAPACITY_10, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_CAPACITY_16, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_FORMAT_CAPACITIES, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_REPORT_LUNS, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_REQUEST_SENSE, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_SEND_DIAGNOSTIC, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_TEST_UNIT_READY, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_WRITE_6, .target_state  = SCSI_WRITE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_WRITE_10, .target_state  = SCSI_WRITE, .predictable   = true }
 };
 
 static const transition_spec_t state_read_trans_tab[] = {
-    { .transition_id = TRANS_SCSI_CMD_READ_10, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_READ_6, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_10, .target_state  = SCSI_READ, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_6, .target_state  = SCSI_READ, .predictable   = true },
 };
 
 static const transition_spec_t state_write_trans_tab[] = {
-    { .transition_id = TRANS_SCSI_CMD_WRITE_10, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_WRITE_6, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_WRITE_10, .target_state  = SCSI_WRITE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_WRITE_6, .target_state  = SCSI_WRITE, .predictable   = true },
 };
 
 static const transition_spec_t state_error_trans_tab[] = {
-    { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_6, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-    { .transition_id = TRANS_SCSI_CMD_REQUEST_SENSE, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_10, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_6, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL, .target_state  = SCSI_IDLE, .predictable   = true },
+    { .transition_id = TRANS_SCSI_CMD_REQUEST_SENSE, .target_state  = SCSI_IDLE, .predictable   = true },
 };
 
 static const automaton_state_t scsi_automaton[] = {
