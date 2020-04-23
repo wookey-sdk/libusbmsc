@@ -92,91 +92,60 @@ typedef enum {
 
 #define TRANS_FROM_CMD(a) TRANS_##a
 
+static const transition_spec_t state_idle_trans_tab[] = {
+    { .transition_id = TRANS_SCSI_CMD_INQUIRY, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_MODE_SELECT_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_MODE_SELECT_6, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_6, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_6, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_10, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_CAPACITY_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_CAPACITY_16, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_FORMAT_CAPACITIES, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_REPORT_LUNS, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_REQUEST_SENSE, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_SEND_DIAGNOSTIC, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_TEST_UNIT_READY, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_WRITE_6, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_WRITE_10, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true }
+};
 
-const automaton_transition_t scsi_automaton[] = {
-        { .state = SCSI_IDLE,
-          .transition = {
-            { .transition_id = TRANS_SCSI_CMD_INQUIRY, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_MODE_SELECT_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_MODE_SELECT_6, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_6, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_READ_6, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_READ_10, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_READ_CAPACITY_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_READ_CAPACITY_16, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_READ_FORMAT_CAPACITIES, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_REPORT_LUNS, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_REQUEST_SENSE, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_SEND_DIAGNOSTIC, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_TEST_UNIT_READY, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_WRITE_6, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_WRITE_10, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true }
-          }
+static const transition_spec_t state_read_trans_tab[] = {
+    { .transition_id = TRANS_SCSI_CMD_READ_10, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_READ_6, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
+};
+
+static const transition_spec_t state_write_trans_tab[] = {
+    { .transition_id = TRANS_SCSI_CMD_WRITE_10, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_WRITE_6, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true },
+};
+
+static const transition_spec_t state_error_trans_tab[] = {
+    { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_6, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+    { .transition_id = TRANS_SCSI_CMD_REQUEST_SENSE, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
+};
+
+static const automaton_state_t scsi_automaton[] = {
+        {
+          .state = SCSI_IDLE,
+          .num_transitions = 17,
+          .transitions = &state_idle_trans_tab[0]
         },
         { .state = SCSI_READ,
-          .transition = {
-            { .transition_id = TRANS_SCSI_CMD_READ_10, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_READ_6, .target_state  = SCSI_READ, .predictable   = true, .valid         = true },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false }
-          }
+          .num_transitions = 2,
+          .transitions = &state_read_trans_tab[0]
         },
         { .state = SCSI_WRITE,
-          .transition = {
-            { .transition_id = TRANS_SCSI_CMD_WRITE_10, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_WRITE_6, .target_state  = SCSI_WRITE, .predictable   = true, .valid         = true },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false }
-          }
+          .num_transitions = 2,
+          .transitions = &state_write_trans_tab[0]
         },
         { .state = SCSI_ERROR,
-          .transition = {
-            { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_10, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_MODE_SENSE_6, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = TRANS_SCSI_CMD_REQUEST_SENSE, .target_state  = SCSI_IDLE, .predictable   = true, .valid         = true },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false },
-            { .transition_id = MAX_AUTOMATON_TRANSITIONS, .target_state  = MAX_AUTOMATON_STATES, .predictable   = false, .valid         = false }
-          }
+          .num_transitions = 4,
+          .transitions = &state_error_trans_tab[0]
         }
 };
 
@@ -215,6 +184,9 @@ typedef struct {
     uint32_t block_size;
     uint32_t storage_size;
     automaton_ctx_handler_t aut_handler;
+    volatile bool data_available;
+    volatile bool data_sent;
+    volatile bool error_state;
 } scsi_context_t;
 
 
@@ -229,6 +201,9 @@ scsi_context_t scsi_ctx = {
     .global_buf_len = 0,
     .block_size = 0,
     .storage_size = 0,
+    .data_available = false,
+    .data_sent = false,
+    .error_state = false
 };
 
 static volatile cdb_t queued_cdb = { 0 };
@@ -240,7 +215,7 @@ static void scsi_error(scsi_sense_key_t sensekey, uint8_t asc, uint8_t ascq)
     scsi_ctx.error = (sensekey << 16 | asc << 8 | ascq);
     /* returning status */
     usb_bbb_send_csw(CSW_STATUS_FAILED, 0);
-    automaton_set_state(scsi_ctx.aut_handler, SCSI_IDLE);
+    scsi_ctx.error_state = true;
 }
 
 /*********************************************************************
@@ -456,7 +431,7 @@ static void scsi_data_available(uint32_t size)
     if (scsi_ctx.size_to_process == 0) {
         usb_bbb_send_csw(CSW_STATUS_SUCCESS, 0);
         scsi_ctx.direction = SCSI_DIRECTION_IDLE;
-        automaton_set_state(scsi_ctx.aut_handler, SCSI_IDLE);
+        scsi_ctx.data_available = true;
     }
 }
 
@@ -482,7 +457,7 @@ static void scsi_data_sent(void)
     if (scsi_ctx.size_to_process == 0) {
         usb_bbb_send_csw(CSW_STATUS_SUCCESS, 0);
         scsi_ctx.direction = SCSI_DIRECTION_IDLE;
-        automaton_set_state(scsi_ctx.aut_handler, SCSI_IDLE);
+        scsi_ctx.data_sent = true;
     }
 }
 
@@ -1757,6 +1732,19 @@ void scsi_exec_automaton(void)
     if (automaton_postcheck_transition_request(scsi_ctx.aut_handler) != MBED_ERROR_NONE) {
         log_printf("[scsi] unable to postcheck transition request %x\n", local_cdb.operation);
     }
+    /* if a previousy received async. This must be done **after** postcheck hook, to avoid automaton corruption detection */
+    if (scsi_ctx.data_available == true) {
+        automaton_set_state(scsi_ctx.aut_handler, SCSI_IDLE);
+        scsi_ctx.data_available = false;
+    }
+    if (scsi_ctx.data_sent == true) {
+        automaton_set_state(scsi_ctx.aut_handler, SCSI_IDLE);
+        scsi_ctx.data_sent = false;
+    }
+    if (scsi_ctx.error == true) {
+        automaton_set_state(scsi_ctx.aut_handler, SCSI_ERROR);
+        scsi_ctx.error = false;
+    }
     return;
 
  nothing_to_do:
@@ -1780,6 +1768,9 @@ static void scsi_reset_context(void)
     scsi_ctx.queue_empty = true;
     scsi_ctx.block_size = 0;
     scsi_ctx.storage_size = 0;
+    scsi_ctx.data_sent = false;
+    scsi_ctx.data_available = false;
+    scsi_ctx.error = false;
     automaton_set_state(scsi_ctx.aut_handler, SCSI_IDLE);
 }
 
@@ -1832,7 +1823,7 @@ mbed_error_t scsi_configure(uint32_t usbdci_handler)
     //usb_driver_map();
 
     /* the libautomaton **must** be initialized here */
-    errcode = automaton_declare_context(4,20,(automaton_transition_t const *const*)&scsi_automaton, &scsi_ctx.aut_handler);
+    errcode = automaton_declare_context(4,20,(const automaton_state_t *)&scsi_automaton[0], &scsi_ctx.aut_handler);
     if (errcode != MBED_ERROR_NONE) {
         log_printf("unable to declare automaton context! err=%x\n", errcode);
         goto err;
