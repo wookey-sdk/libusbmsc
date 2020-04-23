@@ -1731,6 +1731,8 @@ void scsi_exec_automaton(void)
     };
     if (automaton_postcheck_transition_request(scsi_ctx.aut_handler) != MBED_ERROR_NONE) {
         log_printf("[scsi] unable to postcheck transition request %x\n", local_cdb.operation);
+        /* fallback */
+        automaton_set_state(scsi_ctx.aut_handler, SCSI_ERROR);
     }
     /* if a previousy received async. This must be done **after** postcheck hook, to avoid automaton corruption detection */
     if (scsi_ctx.data_available == true) {
